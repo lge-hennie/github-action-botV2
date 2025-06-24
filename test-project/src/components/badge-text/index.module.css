@@ -1,0 +1,31 @@
+.textBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6.25rem;
+}
+
+.custom-dark {
+  background-color: #5196b8;
+  color: #5196b8;
+}
+.iconSize-lg {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-right: 0.25rem;
+    fill: currentColor;
+}
+
+.iconSize-md {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.19rem;
+    fill: currentColor;
+}
+
+.iconSize-sm {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-right: 0.12rem;
+    fill: currentColor;
+}
