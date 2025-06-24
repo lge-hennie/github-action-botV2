@@ -22,14 +22,13 @@ jobs:
       - name: Get Changed TS Files
         id: changed_files
         run: |
-          # 변경된 파일 목록에서 .ts 또는 .tsx 파일만 추출
           FILES_DATA=${{ github.event.pull_request.files }}
+          echo "FILES_DATA: $FILES_DATA"  # 로그 추가
           if [ -z "$FILES_DATA" ]; then
-           echo "::error::No files changed in the pull request."
-           exit 1
+            echo "::error::No files changed in the pull request."
+            exit 1
           fi
           
-           # jq를 사용하여 파일 목록 추출 후, .ts 또는 .tsx 파일만 필터링
           FILES=$(echo "$FILES_DATA" | jq -r '.[].filename' | grep -E '\.(ts|tsx)$')
           if [ -z "$FILES" ]; then
             echo "::warning::No .ts or .tsx files found in the changes."
@@ -42,11 +41,9 @@ jobs:
         run: |
           git fetch origin "${{ github.event.pull_request.base.ref }}"
           git fetch origin "${{ github.event.pull_request.head.ref }}"
-          # 필터링된 .ts 또는 .tsx 파일들에 대한 diff 생성
           for FILE in ${{ steps.changed_files.outputs.files }}; do
             git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" "$FILE" >> "diff.txt"
           done
-           # diff 파일이 비어있다면 경고 메시지 출력
           if [ ! -s diff.txt ]; then
             echo "No .ts or .tsx files to review."
             exit 1
@@ -56,31 +53,30 @@ jobs:
         with:
           script: |
             const fs = require("fs");
-            const diff_output = fs.readFileSync("diff.txt",'utf8');
-            console.log('diff:',diff_output)
+            const diff_output = fs.readFileSync("diff.txt", 'utf8');
+            console.log('diff:', diff_output);
             
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI("${{ secrets.GEMINI_API_KEY }}");
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
             
-            const prompt = `You are a senior software engineer and need to perform a code review based on the results of a given git diff. Review the changed code from different perspectives and let us know if there are any changes that need to be made. If you see any code that needs to be fixed in the result of the git diff, you need to calculate the exact line number by referring to the “@@ -0,0 +0,0 @@” part. The output format is \[{“path”:“{ filepath }”, “line”: { line }, “text”: { review comment }, “side”: “RIGHT"}\] format must be respected.\n<git diff>${diff_output}</git diff>`;
+            const prompt = `You are a senior software engineer and need to perform a code review based on the results of a given git diff. Review the changed code from different perspectives and let us know if there are any changes that need to be made. If you see any code that needs to be fixed in the result of the git diff, you need to calculate the exact line number by referring to the “@@ -0,0 +0,0 @@” part. The output format is [{“path”:“{ filepath }”, “line”: { line }, “text”: { review comment }, “side”: “RIGHT"}] format must be respected.\n<git diff>${diff_output}</git diff>`;
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
-            console.log(text)
+            console.log(text);
             
-            fs.writeFileSync('res.txt',text);
-            console.log('Save Results!')
-      - name: output
+            fs.writeFileSync('res.txt', text);
+            console.log('Save Results!');
+      - name: Extract and Format Review Comments
         id: store
         run: |
-          COMMENT=$(sed '/^```/d' res.txt | jq -c .)
-          echo "comment=$COMMENT" >> $GITHUB_OUTPUT
-          echo $((${{ steps.store.outputs.comment }}))
+          COMMENT=$(sed '/^```/d' res.txt | jq -c '.[]')  # JSON 배열 형태로 처리
+          echo "::set-output name=comment::$COMMENT"
       - name: Add Pull Request Review Comment
         uses: nbaztec/add-pr-review-comment@v1.0.7
         with:
           comments: ${{ steps.store.outputs.comment }}
           repo-token: ${{ secrets.GH_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
-          allow-repeats: false # This is the default
+          repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: false
