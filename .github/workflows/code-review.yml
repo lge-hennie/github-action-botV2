@@ -25,7 +25,6 @@ jobs:
       - name: Get Changed Files (Excluding CSS)
         id: changed_files
         run: |
-          # 변경된 파일 목록을 필터링하여 CSS 파일을 제외
             FILES=$(echo ${{ github.event.pull_request.files }} | jq -r '.[].filename' | grep -E '\.(ts|tsx)$')
             echo "::set-output name=files::$FILES"
       - name: Generate Git Diff for Non-CSS Files
