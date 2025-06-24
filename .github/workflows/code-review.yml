@@ -19,75 +19,41 @@ jobs:
       - name: Install GoogleGenerativeAI
         run: |
           npm install @google/generative-ai
-      - name: Log PR Details
-        run: |
-          echo "PR Base Ref: ${{ github.event.pull_request.base.ref }}"
-          echo "PR Head Ref: ${{ github.event.pull_request.head.ref }}"
-          echo "PR Number: ${{ github.event.pull_request.number }}"
-          echo "FILES_DATA: ${{ github.event.pull_request.files }}"
-          FILES_DATA=${{ github.event.pull_request.files }}
-          if [ -z "$FILES_DATA" ]; then
-            echo "::error::No files changed in the pull request."
-            exit 1
-          fi
-      - name: Get Changed TS Files
-        id: changed_files
-        run: |
-          FILES_DATA=${{ github.event.pull_request.files }}
-          echo "FILES_DATA: $FILES_DATA"  # 로그 추가
-          if [ -z "$FILES_DATA" ]; then
-            echo "::error::No files changed in the pull request."
-            exit 1
-          fi
-          
-          FILES=$(echo "$FILES_DATA" | jq -r '.[].filename' | grep -E '\.(ts|tsx)$')
-          if [ -z "$FILES" ]; then
-            echo "::warning::No .ts or .tsx files found in the changes."
-            exit 0  # 또는 다른 적절한 처리
-          fi
-          
-          echo "::set-output name=files::$FILES"
-
       - name: Get git diff
         run: |
           git fetch origin "${{ github.event.pull_request.base.ref }}"
           git fetch origin "${{ github.event.pull_request.head.ref }}"
-          for FILE in ${{ steps.changed_files.outputs.files }}; do
-            git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" "$FILE" >> "diff.txt"
-          done
-          if [ ! -s diff.txt ]; then
-            echo "No .ts or .tsx files to review."
-            exit 1
-          fi
+          git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" > "diff.txt"
       - name: Run Gemini-1.5-flash
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require("fs");
-            const diff_output = fs.readFileSync("diff.txt", 'utf8');
-            console.log('diff:', diff_output);
+            const diff_output = fs.readFileSync("diff.txt",'utf8');
+            console.log('diff:',diff_output)
             
             const { GoogleGenerativeAI } = require("@google/generative-ai");
             const genAI = new GoogleGenerativeAI("${{ secrets.GEMINI_API_KEY }}");
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
             
-            const prompt = `You are a senior software engineer and need to perform a code review based on the results of a given git diff. Review the changed code from different perspectives and let us know if there are any changes that need to be made. If you see any code that needs to be fixed in the result of the git diff, you need to calculate the exact line number by referring to the “@@ -0,0 +0,0 @@” part. The output format is [{“path”:“{ filepath }”, “line”: { line }, “text”: { review comment }, “side”: “RIGHT"}] format must be respected.\n<git diff>${diff_output}</git diff>`;
+            const prompt = `You are a senior software engineer and need to perform a code review based on the results of a given git diff. Review the changed code from different perspectives and let us know if there are any changes that need to be made. If you see any code that needs to be fixed in the result of the git diff, you need to calculate the exact line number by referring to the “@@ -0,0 +0,0 @@” part. The output format is \[{“path”:“{ filepath }”, “line”: { line }, “text”: { review comment }, “side”: “RIGHT"}\] format must be respected.\n<git diff>${diff_output}</git diff>`;
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
-            console.log(text);
+            console.log(text)
             
-            fs.writeFileSync('res.txt', text);
-            console.log('Save Results!');
-      - name: Extract and Format Review Comments
+            fs.writeFileSync('res.txt',text);
+            console.log('Save Results!')
+      - name: output
         id: store
         run: |
-          COMMENT=$(sed '/^```/d' res.txt | jq -c '.[]')  # JSON 배열 형태로 처리
-          echo "::set-output name=comment::$COMMENT"
+          COMMENT=$(sed '/^```/d' res.txt | jq -c .)
+          echo "comment=$COMMENT" >> $GITHUB_OUTPUT
+          echo $((${{ steps.store.outputs.comment }}))
       - name: Add Pull Request Review Comment
         uses: nbaztec/add-pr-review-comment@v1.0.7
         with:
           comments: ${{ steps.store.outputs.comment }}
           repo-token: ${{ secrets.GH_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]'
-          allow-repeats: false
+          repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
+          allow-repeats: false # This is the default
