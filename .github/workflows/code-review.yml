@@ -2,9 +2,6 @@ name: code-review
 
 on:
   pull_request:
-    branches:
-      - main  # 허용할 브랜치 이름을 여기에 추가
-      - develop
     types: [opened, reopened, synchronize]
   workflow_dispatch:
 
@@ -22,26 +19,38 @@ jobs:
       - name: Install GoogleGenerativeAI
         run: |
           npm install @google/generative-ai
-      - name: Get Changed Files (Excluding CSS)
+      - name: Get Changed TS Files
         id: changed_files
         run: |
-            FILES=$(echo ${{ github.event.pull_request.files }} | jq -r '.[].filename' | grep -E '\.(ts|tsx)$')
-            echo "::set-output name=files::$FILES"
-      - name: Generate Git Diff for Non-CSS Files
+          # 변경된 파일 목록에서 .ts 또는 .tsx 파일만 추출
+          FILES_DATA=${{ github.event.pull_request.files }}
+          if [ -z "$FILES_DATA" ]; then
+           echo "::error::No files changed in the pull request."
+           exit 1
+          fi
+          
+           # jq를 사용하여 파일 목록 추출 후, .ts 또는 .tsx 파일만 필터링
+          FILES=$(echo "$FILES_DATA" | jq -r '.[].filename' | grep -E '\.(ts|tsx)$')
+          if [ -z "$FILES" ]; then
+            echo "::warning::No .ts or .tsx files found in the changes."
+            exit 0  # 또는 다른 적절한 처리
+          fi
+          
+          echo "::set-output name=files::$FILES"
+
+      - name: Get git diff
         run: |
-                git fetch origin "${{ github.event.pull_request.base.ref }}"
-                git fetch origin "${{ github.event.pull_request.head.ref }}"
-          
-                # 변경된 파일들에 대한 diff 생성
-                for FILE in ${{ steps.changed_files.outputs.files }}; do
-                  git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" "$FILE" >> "diff.txt"
-                done
-          
-                # 만약 diff 파일이 비어있다면 경고 메시지 출력
-                if [ ! -s diff.txt ]; then
-                  echo "No non-CSS files to review."
-                  exit 1
-                fi
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          git fetch origin "${{ github.event.pull_request.head.ref }}"
+          # 필터링된 .ts 또는 .tsx 파일들에 대한 diff 생성
+          for FILE in ${{ steps.changed_files.outputs.files }}; do
+            git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" "$FILE" >> "diff.txt"
+          done
+           # diff 파일이 비어있다면 경고 메시지 출력
+          if [ ! -s diff.txt ]; then
+            echo "No .ts or .tsx files to review."
+            exit 1
+          fi
       - name: Run Gemini-1.5-flash
         uses: actions/github-script@v7
         with:
