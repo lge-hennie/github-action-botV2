@@ -19,6 +19,17 @@ jobs:
       - name: Install GoogleGenerativeAI
         run: |
           npm install @google/generative-ai
+      - name: Log PR Details
+        run: |
+          echo "PR Base Ref: ${{ github.event.pull_request.base.ref }}"
+          echo "PR Head Ref: ${{ github.event.pull_request.head.ref }}"
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "FILES_DATA: ${{ github.event.pull_request.files }}"
+          FILES_DATA=${{ github.event.pull_request.files }}
+          if [ -z "$FILES_DATA" ]; then
+            echo "::error::No files changed in the pull request."
+            exit 1
+          fi
       - name: Get Changed TS Files
         id: changed_files
         run: |
