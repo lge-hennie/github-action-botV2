@@ -1,0 +1,19 @@
+.menuList > a:first-child {
+    padding: 16px 12px;
+    display: flex;
+    align-self: stretch;
+    gap: 12px;
+    white-space: nowrap;
+}
+
+.menuItem > a {
+    padding: 8px 56px;
+    display: flex;
+    align-self: stretch;
+}
+
+@media (max-width: 1200px) {
+    .menuList > a:first-child {
+        font-size: 18px;
+    }
+}
