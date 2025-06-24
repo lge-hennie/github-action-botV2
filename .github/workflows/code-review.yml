@@ -2,6 +2,9 @@ name: code-review
 
 on:
   pull_request:
+    branches:
+      - main  # 허용할 브랜치 이름을 여기에 추가
+      - develop
     types: [opened, reopened, synchronize]
   workflow_dispatch:
 
@@ -19,11 +22,27 @@ jobs:
       - name: Install GoogleGenerativeAI
         run: |
           npm install @google/generative-ai
-      - name: Get git diff
+      - name: Get Changed Files (Excluding CSS)
+        id: changed_files
         run: |
-          git fetch origin "${{ github.event.pull_request.base.ref }}"
-          git fetch origin "${{ github.event.pull_request.head.ref }}"
-          git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" > "diff.txt"
+          # 변경된 파일 목록을 필터링하여 CSS 파일을 제외
+            FILES=$(echo ${{ github.event.pull_request.files }} | jq -r '.[].filename' | grep -v '\.css$')
+            echo "::set-output name=files::$FILES"
+      - name: Generate Git Diff for Non-CSS Files
+        run: |
+                git fetch origin "${{ github.event.pull_request.base.ref }}"
+                git fetch origin "${{ github.event.pull_request.head.ref }}"
+          
+                # 변경된 파일들에 대한 diff 생성
+                for FILE in ${{ steps.changed_files.outputs.files }}; do
+                  git diff --unified=0 "origin/${{ github.event.pull_request.base.ref }}" "$FILE" >> "diff.txt"
+                done
+          
+                # 만약 diff 파일이 비어있다면 경고 메시지 출력
+                if [ ! -s diff.txt ]; then
+                  echo "No non-CSS files to review."
+                  exit 1
+                fi
       - name: Run Gemini-1.5-flash
         uses: actions/github-script@v7
         with:
