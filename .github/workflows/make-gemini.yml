@@ -29,6 +29,6 @@ jobs:
 
       - name: Split JSON into locale files
         run: |
-          jq '.ko' locales/generated.json > locales/en.json
-          jq '.ja' locales/generated.json > locales/ko.json
-          jq '.zh' locales/generated.json > locales/ja.json
+          jq '.ko' test-project/src/locales/generated.json > locales/en.json
+          jq '.ja' test-project/src/locales/generated.json > locales/ko.json
+          jq '.zh' test-project/src/locales/generated.json > locales/ja.json
