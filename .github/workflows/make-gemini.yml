@@ -20,4 +20,4 @@ jobs:
         run: npm install -g @google/gemini-cli
 
       - name: Run Gemini CLI
-        run: gemini "Generate 10 Korean names with random ages"
+        run: echo "Generate 10 Korean names with random ages" | gemini
