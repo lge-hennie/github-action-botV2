@@ -23,7 +23,7 @@ jobs:
         run: mkdir -p test-project/src/locales
 
       - name: Run Gemini CLI
-        run: echo "I want to extract UI text from my TSX files and generate i18n key-value pairs in English, Korean, Japanese in JSON format " | gemini > test-project/src/locales/generated.json
+        run: echo "I want to extract UI text from my TSX files and generate i18n key-value pairs in English in JSON format " | gemini > test-project/src/locales/en.json
         env:
          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
