@@ -27,9 +27,9 @@ jobs:
         env:
          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      - name: Split JSON into locale files
-        run: |
-          jq '.en' test-project/src/locales/generated.json > test-project/src/locales/en.json
-          jq '.ko' test-project/src/locales/generated.json > test-project/src/locales/ko.json
-          jq '.ja' test-project/src/locales/generated.json > test-project/src/locales/ja.json
+#      - name: Split JSON into locale files
+#        run: |
+#          jq '.en' test-project/src/locales/generated.json > test-project/src/locales/en.json
+#          jq '.ko' test-project/src/locales/generated.json > test-project/src/locales/ko.json
+#          jq '.ja' test-project/src/locales/generated.json > test-project/src/locales/ja.json
 
