@@ -21,3 +21,6 @@ jobs:
 
       - name: Run Gemini CLI
         run: echo "Generate 10 Korean names with random ages" | gemini
+        env:
+         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
