@@ -20,7 +20,12 @@ jobs:
         run: npm install -g @google/gemini-cli
 
       - name: Run Gemini CLI
-        run: echo "Generate 10 Korean names with random ages" | gemini
+        run: echo "I want to extract UI text from my TSX files and generate i18n key-value pairs in English, Korean, Japanese in JSON format " | gemini > locales/generated.json
         env:
          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+      - name: Split JSON into locale files
+        run: |
+          jq '.ko' locales/generated.json > locales/en.json
+          jq '.ja' locales/generated.json > locales/ko.json
+          jq '.zh' locales/generated.json > locales/ja.json
