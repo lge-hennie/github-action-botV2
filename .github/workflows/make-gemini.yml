@@ -23,7 +23,7 @@ jobs:
         run: mkdir -p test-project/src/locales
 
       - name: Run Gemini CLI
-        run: echo "I want to extract UI text from my TSX files and generate i18n key-value pairs in English in JSON format " | gemini
+        run: echo "I want to extract UI text from my TSX files and generate i18n key-value pairs in English in JSON format.  Since this is running in a GitHub Actions environment, do not print any output until all processing is complete. I will use the final JSON output to create a file, so please return only the final result in valid JSON format, without any explanations or repeated prompts." | gemini
         env:
          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
